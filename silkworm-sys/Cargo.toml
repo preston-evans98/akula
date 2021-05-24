@@ -1,0 +1,29 @@
+[package]
+name = "silkworm-sys"
+# NB: When modifying, also modify html_root_url in lib.rs
+# NB: The version must match the version of mdbx
+version = "0.1.0"
+edition = "2018"
+authors = ["Artem Vorotnikov <artem@vorotnikov.me>"]
+license = "Apache-2.0"
+description = "Rust bindings for Silkworm."
+documentation = "https://docs.rs/silkworm-sys"
+homepage = "https://github.com/rust-ethereum/akula"
+repository = "https://github.com/rust-ethereum/akula.git"
+readme = "../README.md"
+keywords = ["ethereum", "bindings", "library"]
+categories = ["external-ffi-bindings"]
+
+# NB: Use "--features bindgen" to generate bindings.
+build = "build.rs"
+
+[lib]
+name = "silkworm"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cmake = "0.1"
+cc = "1.0"
+bindgen = { version = "0.58", default-features = false, optional = true, features = ["runtime"] }

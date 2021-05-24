@@ -1,0 +1,3 @@
+[submodule "silkworm-sys/silkworm"]
+	path = silkworm-sys/silkworm
+	url = https://github.com/torquem-ch/silkworm
