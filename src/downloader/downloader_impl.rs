@@ -1,13 +1,14 @@
 use crate::downloader::{
-    block_id,
     chain_config::{ChainConfig, ChainsConfig},
-    messages::{EthMessageId, GetBlockHeadersMessage, GetBlockHeadersMessageParams, Message},
+    headers::{header_merge_stream::HeaderMergeStream, header_slices::HeaderSlices},
     opts::Opts,
     sentry_client,
-    sentry_client::{PeerFilter, SentryClient},
+    sentry_client::SentryClient,
     sentry_client_impl::SentryClientImpl,
     sentry_client_reactor::SentryClientReactor,
 };
+use parking_lot::RwLock;
+use std::sync::Arc;
 use tokio_stream::StreamExt;
 
 pub struct Downloader {
@@ -40,26 +41,24 @@ impl Downloader {
 
         sentry_client.set_status(status).await?;
 
-        let mut sentry = SentryClientReactor::new(sentry_client);
-        sentry.start();
+        let mut sentry_reactor = SentryClientReactor::new(sentry_client);
+        sentry_reactor.start();
 
-        let message = Message::GetBlockHeaders(GetBlockHeadersMessage {
-            request_id: 1,
-            params: GetBlockHeadersMessageParams {
-                start_block: block_id::BlockId::Number(123),
-                limit: 5,
-                skip: 0,
-                reverse: 0,
-            },
-        });
-        sentry.send_message(message, PeerFilter::All)?;
+        let header_slices = Arc::new(HeaderSlices::new(100 << 20 /* 100 Mb */));
+        let sentry = Arc::new(RwLock::new(sentry_reactor));
 
-        let mut stream = sentry.receive_messages(EthMessageId::BlockHeaders)?;
-        while let Some(message) = stream.next().await {
-            tracing::info!("incoming message: {:?}", message.eth_id());
+        let headers_stream =
+            HeaderMergeStream::new(Arc::clone(&header_slices), Arc::clone(&sentry));
+        let mut stream = headers_stream.stream()?;
+
+        while let Some(header) = stream.next().await {
+            tracing::info!("next header: {:?}", header.number);
         }
 
-        sentry.stop().await?;
+        {
+            let mut sentry_reactor = sentry.write();
+            sentry_reactor.stop().await?;
+        }
 
         Ok(())
     }
