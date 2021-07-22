@@ -21,6 +21,7 @@ bytesize = "1"
 clap = "2"
 console-subscriber = { git = "https://github.com/tokio-rs/console" }
 const_format = "0.2"
+crossterm = { version = "0.20", optional = true }
 ethereum = "0.7"
 ethereum-interfaces = { git = "https://github.com/ledgerwatch/interfaces", features = ["remotekv", "sentry"] }
 ethereum-types = "0.11"

@@ -44,8 +44,15 @@ impl Downloader {
         let mut sentry_reactor = SentryClientReactor::new(sentry_client);
         sentry_reactor.start();
 
+        let mut ui_system = crate::downloader::ui_system::UISystem::new();
+        ui_system.start();
+
         let header_slices = Arc::new(HeaderSlices::new(100 << 20 /* 100 Mb */));
         let sentry = Arc::new(RwLock::new(sentry_reactor));
+
+        let header_slices_view =
+            crate::downloader::headers::HeaderSlicesView::new(Arc::clone(&header_slices));
+        ui_system.set_view(Some(Box::new(header_slices_view)));
 
         let headers_stream =
             HeaderMergeStream::new(Arc::clone(&header_slices), Arc::clone(&sentry));
@@ -54,6 +61,8 @@ impl Downloader {
         while let Some(header) = stream.next().await {
             tracing::info!("next header: {:?}", header.number);
         }
+
+        ui_system.stop().await?;
 
         {
             let mut sentry_reactor = sentry.write();
